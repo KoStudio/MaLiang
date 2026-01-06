@@ -123,6 +123,20 @@ open class CanvasData {
     
     private(set) var undoArray: [CanvasElement] = []
     
+    // MARK: - State Snapshot (for saving/restoring canvas state)
+    /// Get a snapshot of the undo array for state saving
+    /// - Note: Added to support saving/restoring canvas state per character in dictation flow
+    internal func getUndoArraySnapshot() -> [CanvasElement] {
+        return undoArray
+    }
+    
+    /// Restore the undo array from a snapshot
+    /// - Parameter snapshot: The undo array snapshot to restore
+    /// - Note: Added to support saving/restoring canvas state per character in dictation flow
+    internal func restoreUndoArray(from snapshot: [CanvasElement]) {
+        undoArray = snapshot
+    }
+    
     internal func undo() -> Bool {
         finishCurrentElement()
         
