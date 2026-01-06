@@ -125,15 +125,16 @@ open class CanvasData {
     
     // MARK: - State Snapshot (for saving/restoring canvas state)
     /// Get a snapshot of the undo array for state saving
-    /// - Note: Added to support saving/restoring canvas state per character in dictation flow
-    internal func getUndoArraySnapshot() -> [CanvasElement] {
+    /// - Note: 公共方法，供使用 MaLiang 的上层模块（如 Zhika）访问，
+    ///   用于按「字」保存 Canvas 的 Undo/Redo 状态
+    public func getUndoArraySnapshot() -> [CanvasElement] {
         return undoArray
     }
     
     /// Restore the undo array from a snapshot
     /// - Parameter snapshot: The undo array snapshot to restore
-    /// - Note: Added to support saving/restoring canvas state per character in dictation flow
-    internal func restoreUndoArray(from snapshot: [CanvasElement]) {
+    /// - Note: 公共方法，供使用 MaLiang 的上层模块恢复指定字的 Undo/Redo 栈
+    public func restoreUndoArray(from snapshot: [CanvasElement]) {
         undoArray = snapshot
     }
     
