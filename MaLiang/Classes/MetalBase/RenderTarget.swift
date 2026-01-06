@@ -49,10 +49,10 @@ open class RenderTarget {
         let attachment = renderPassDescriptor?.colorAttachments[0]
         attachment?.texture = texture
         
-        // Fix: Set loadAction to .clear for initial setup to ensure clean state
-        // This prevents artifacts (horizontal lines) on first display.
-        // After initial setup, it can be changed to .load for subsequent renders.
-        attachment?.loadAction = .clear
+        // Fix: Use .load instead of .clear because the texture is already cleared with zeros
+        // in makeEmptyTexture(). Using .load prevents the texture from being cleared on every render,
+        // which would cause the canvas to appear black. The initial texture is already clean.
+        attachment?.loadAction = .load
         attachment?.storeAction = .store
         
         updateBuffer(with: size)
@@ -77,8 +77,10 @@ open class RenderTarget {
         
         // Update the render pass descriptor to use the new texture
         renderPassDescriptor?.colorAttachments[0].texture = texture
-        // Set loadAction to .clear to ensure the texture is cleared on next render
-        renderPassDescriptor?.colorAttachments[0].loadAction = .clear
+        // Fix: Keep loadAction as .load because the new texture is already cleared with zeros
+        // in makeEmptyTexture(). Using .clear would cause the texture to be cleared on every
+        // subsequent render, making the canvas appear black. The new texture is already clean.
+        renderPassDescriptor?.colorAttachments[0].loadAction = .load
         
         // Commit the clear operation
         commitCommands()
