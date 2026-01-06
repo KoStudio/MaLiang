@@ -31,15 +31,28 @@ extension MTLDevice {
 }
 
 extension MTLTexture {
+    /// Clear the texture by filling it with zeros (transparent black)
+    /// - Note: Previously used Data(capacity:) which left uninitialized memory,
+    ///   causing random artifacts (horizontal lines) on first display.
+    ///   Now uses Data(repeating:count:) to ensure clean initialization.
     func clear() {
         let region = MTLRegion(
             origin: MTLOrigin(x: 0, y: 0, z: 0),
             size: MTLSize(width: width, height: height, depth: 1)
         )
         let bytesPerRow = 4 * width
-        let data = Data(capacity: Int(bytesPerRow * height))
-        if let bytes = data.withUnsafeBytes({ $0.baseAddress }) {
-            replace(region: region, mipmapLevel: 0, withBytes: bytes, bytesPerRow: bytesPerRow)
+        let byteCount = bytesPerRow * height
+        
+        // Fix: Use Data(repeating:count:) instead of Data(capacity:) to ensure
+        // the texture is filled with zeros (transparent black) instead of
+        // uninitialized memory that could contain random data.
+        // This fixes the issue where horizontal lines appear on first display.
+        let data = Data(repeating: 0, count: byteCount)
+        
+        data.withUnsafeBytes { bytes in
+            if let baseAddress = bytes.baseAddress {
+                replace(region: region, mipmapLevel: 0, withBytes: baseAddress, bytesPerRow: bytesPerRow)
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+platform :ios, '18.0'
 use_frameworks!
 
 target 'MaLiang_Example' do
@@ -5,7 +6,60 @@ target 'MaLiang_Example' do
 
   pod 'Comet'
   pod 'Chrysan'
-  pod 'Zip'
+#  pod 'Zip'
   pod 'SnapKit'
   
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f < 12.0
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.0'
+      end
+      
+      # Fix minizip module for Zip target
+      if target.name == 'Zip'
+        # Ensure minizip headers are in search paths with multiple path formats
+        minizip_path = "$(SRCROOT)/Zip/Zip/minizip"
+        config.build_settings['HEADER_SEARCH_PATHS'] = "$(inherited) \"#{minizip_path}\" \"$(PODS_ROOT)/Zip/Zip/minizip\""
+        config.build_settings['SWIFT_INCLUDE_PATHS'] = "$(inherited) \"#{minizip_path}\" \"$(PODS_ROOT)/Zip/Zip/minizip\""
+        config.build_settings['USER_HEADER_SEARCH_PATHS'] = "$(inherited) \"#{minizip_path}\" \"$(PODS_ROOT)/Zip/Zip/minizip\""
+        # Also set MODULEMAP_FILE search path
+        config.build_settings['MODULEMAP_FILE_SEARCH_PATHS'] = "$(inherited) \"$(SRCROOT)/Zip/Zip/minizip\""
+      end
+    end
+  end
+  
+  # Fix minizip module by updating Zip.modulemap to include minizip
+  # The issue is that modulemap header paths are resolved relative to HEADER_SEARCH_PATHS
+  # So we use simple names since we've added minizip to HEADER_SEARCH_PATHS
+  zip_modulemap_path = File.join(__dir__, 'Pods/Target Support Files/Zip/Zip.modulemap')
+  minizip_modulemap_path = File.join(__dir__, 'Pods/Zip/Zip/minizip/module.modulemap')
+  
+  if File.exist?(zip_modulemap_path) && File.exist?(minizip_modulemap_path)
+    # Read the original minizip modulemap to get the exact header definitions
+    minizip_content = File.read(minizip_modulemap_path)
+    
+    # Create Zip.modulemap that includes minizip module
+    # Use path relative to SRCROOT since that's what HEADER_SEARCH_PATHS uses
+    zip_modulemap_content = <<~MODULEMAP
+      framework module Zip {
+        umbrella header "Zip-umbrella.h"
+        
+        module minizip [system][extern_c] {
+          header "Zip/Zip/minizip/unzip.h"
+          header "Zip/Zip/minizip/zip.h"
+          export *
+        }
+        
+        export *
+        module * { export * }
+      }
+    MODULEMAP
+    File.write(zip_modulemap_path, zip_modulemap_content)
+    puts "Updated Zip.modulemap to include minizip module"
+  else
+    puts "Warning: Required files not found. Zip.modulemap: #{File.exist?(zip_modulemap_path)}, minizip.modulemap: #{File.exist?(minizip_modulemap_path)}"
+  end
 end

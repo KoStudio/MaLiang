@@ -34,27 +34,53 @@ open class RenderTarget {
     }
     
     /// create with texture and device
+    /// - Note: Ensures the initial texture is properly cleared and the render pass
+    ///   descriptor is correctly configured to prevent artifacts on first display.
     public init(size: CGSize, pixelFormat: MTLPixelFormat, device: MTLDevice?) {
         
         self.drawableSize = size
         self.pixelFormat = pixelFormat
         self.device = device
+        // Create an empty texture (properly initialized with zeros)
         self.texture = makeEmptyTexture()
         self.commandQueue = device?.makeCommandQueue()
         
         renderPassDescriptor = MTLRenderPassDescriptor()
         let attachment = renderPassDescriptor?.colorAttachments[0]
         attachment?.texture = texture
-        attachment?.loadAction = .load
+        
+        // Fix: Set loadAction to .clear for initial setup to ensure clean state
+        // This prevents artifacts (horizontal lines) on first display.
+        // After initial setup, it can be changed to .load for subsequent renders.
+        attachment?.loadAction = .clear
         attachment?.storeAction = .store
         
         updateBuffer(with: size)
     }
     
     /// clear the contents of texture
+    /// - Note: Previously, clearing only created a new texture but didn't ensure
+    ///   the old command buffer was properly committed. This could cause
+    ///   rendering artifacts when clear() was called multiple times.
+    ///   Now ensures all pending commands are committed before creating new texture.
     open func clear() {
+        // Fix: Commit any pending commands before clearing to ensure
+        // all previous rendering operations are completed and don't interfere
+        // with the new empty texture. This prevents artifacts when clear()
+        // is called multiple times.
+        if commandBuffer != nil {
+            commitCommands()
+        }
+        
+        // Create a new empty texture (which will be properly initialized with zeros)
         texture = makeEmptyTexture()
+        
+        // Update the render pass descriptor to use the new texture
         renderPassDescriptor?.colorAttachments[0].texture = texture
+        // Set loadAction to .clear to ensure the texture is cleared on next render
+        renderPassDescriptor?.colorAttachments[0].loadAction = .clear
+        
+        // Commit the clear operation
         commitCommands()
     }
     
@@ -102,7 +128,10 @@ open class RenderTarget {
         commandBuffer = nil
     }
     
-    // make empty testure
+    // make empty texture
+    /// Creates a new empty texture and ensures it's properly initialized
+    /// - Note: The texture is cleared with zeros (transparent black) to prevent
+    ///   any uninitialized memory artifacts (like horizontal lines) on first display.
     internal func makeEmptyTexture() -> MTLTexture? {
         guard drawableSize.width * drawableSize.height > 0 else {
             return nil
@@ -113,7 +142,11 @@ open class RenderTarget {
                                                                          mipmapped: false)
         textureDescriptor.usage = [.renderTarget, .shaderRead]
         let texture = device?.makeTexture(descriptor: textureDescriptor)
+        
+        // Fix: Ensure the new texture is properly cleared with zeros
+        // This prevents uninitialized memory artifacts (horizontal lines) on first display
         texture?.clear()
+        
         return texture
     }
     

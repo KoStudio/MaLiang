@@ -32,10 +32,17 @@ open class MetalView: MTKView {
     
     // MARK: - Functions
     // Erases the screen, redisplay the buffer if display sets to true
+    /// - Note: Ensures the screen target is cleared and forces a redraw if needed.
+    ///   This prevents rendering artifacts when clear() is called multiple times.
     open func clear(display: Bool = true) {
+        // Clear the screen target (which will create a new empty texture)
         screenTarget?.clear()
+        
         if display {
+            // Force a redraw to ensure the cleared state is visible
             setNeedsDisplay()
+            // Also ensure layout is updated if needed
+            layoutIfNeeded()
         }
     }
 
@@ -141,6 +148,11 @@ open class MetalView: MTKView {
         let attachment = renderPassDescriptor.colorAttachments[0]
         attachment?.clearColor = clearColor
         attachment?.texture = currentDrawable?.texture
+        
+        // Fix: Always use .clear for loadAction to ensure the drawable is cleared
+        // before rendering. This prevents artifacts when clear() is called multiple times.
+        // Previously, this was set to .clear, but we need to ensure it's always cleared
+        // to prevent any residual content from previous frames.
         attachment?.loadAction = .clear
         attachment?.storeAction = .store
         

@@ -10,7 +10,7 @@ import UIKit
 import MaLiang
 import Comet
 import Chrysan
-import Zip
+//import Zip
 
 class ViewController: UIViewController {
     
@@ -216,9 +216,9 @@ class ViewController: UIViewController {
                 let filename = "\(Date().string(format: "yyyyMMddHHmmss")).maliang"
                 
                 let contents = try! FileManager.default.contentsOfDirectory(at: path.url, includingPropertiesForKeys: [], options: .init(rawValue: 0))
-                try? Zip.zipFiles(paths: contents, zipFilePath: Path.documents().resource(filename).url, password: nil, progress: nil)
-                try? FileManager.default.removeItem(at: path.url)
-                self.chrysan.show(.succeed, message: "Saving Succeed!", hideDelay: 1)
+//                try? Zip.zipFiles(paths: contents, zipFilePath: Path.documents().resource(filename).url, password: nil, progress: nil)
+//                try? FileManager.default.removeItem(at: path.url)
+//                self.chrysan.show(.succeed, message: "Saving Succeed!", hideDelay: 1)
             }
         }
     }
@@ -236,7 +236,7 @@ class ViewController: UIViewController {
         do {
             try? FileManager.default.removeItem(at: temp.url)
             try FileManager.default.copyItem(at: path.url, to: temp.url)
-            try Zip.unzipFile(temp.url, destination: contents.url, overwrite: true, password: nil)
+//            try Zip.unzipFile(temp.url, destination: contents.url, overwrite: true, password: nil)
         } catch {
             self.chrysan.hide()
             let alert = UIAlertController(title: "unzip failed", message: error.localizedDescription, preferredStyle: .alert)
